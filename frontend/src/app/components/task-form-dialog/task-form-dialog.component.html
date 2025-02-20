@@ -1,0 +1,8 @@
+<h2 mat-dialog-title>{{ data ? 'Edit Task' : 'New Task' }}</h2>
+<mat-dialog-content>
+  <app-task-form
+    [taskData]="data"
+    (formSubmit)="onFormSubmit($event)"
+    (cancel)="onCancel()">
+  </app-task-form>
+</mat-dialog-content>

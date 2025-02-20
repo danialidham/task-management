@@ -1,0 +1,63 @@
+version: "3.8"
+
+networks:
+  mynetwork:
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    networks:
+      - mynetwork
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: task_db
+      POSTGRES_USER: task_user
+      POSTGRES_PASSWORD: task_password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U task_user -d task_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: django_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mynetwork
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    volumes:
+      - ./backend:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - RUNNING_IN_DOCKER=true
+    command: >
+      sh -c "sleep 5 && 
+             pip install --no-cache-dir -r requirements.txt &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: angular_frontend
+    depends_on:
+      - backend
+    networks:
+      - mynetwork
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/app
+
+volumes:
+  pg_data:
